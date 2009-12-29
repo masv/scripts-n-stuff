@@ -1,0 +1,147 @@
+#!/bin/sh
+
+# chkconfig: 2345 20 80
+# description: This script is used as a startup script.
+# processname: ldap_cacao
+# 
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+CACAOADM="/opt/ldap/dsee6/cacao_2/cacao/bin/cacaoadm"
+cacao_etc_instances_dir="/opt/ldap/dsee6/cacao_2/etc/opt/sun/cacao/instances"
+cacao_base_dir="/opt/ldap/dsee6/cacao_2"
+
+final_exit_code=0
+
+if [ ! -f "${CACAOADM}" ]
+then
+        echo "Can't find cacaoadm, exit"
+        exit 1
+fi
+
+if [ -x "/usr/bin/logger" ]; then
+    LOGGER="/usr/bin/logger"
+else
+    # SuSe platform
+    LOGGER="/bin/logger"
+fi
+
+case "$1" in
+   start)
+        echo -n $"Starting CACAO..."
+        
+                                #loop on all cacao instances
+                                instances="`${LS} -1 ${cacao_etc_instances_dir} 2>/dev/null`"
+                                if [ $? -ne 0 ]; then
+                                    instances="default"
+                                    MSG="Error : Can't retrieve the instances, start the default."
+                                    # Log message on syslog
+                                    ${LOGGER} -p daemon.err -t cacao "${MSG}"
+                                    # Display message on terminal if any
+                                    echo "${MSG}" >&2
+                                    final_exit_code=1
+                                fi
+        
+                                for i in ${instances}
+                                do
+                                    instance="-i ${i}"
+                                    instancename="(instance ${i})"
+        
+                                    # Do the start
+                                    #${CACAOADM} enabled_at_boot_start ${instance} 2>&1
+                                    ${CACAOADM} start ${instance} 2>&1
+                                    if [ $? -ne 0 ]; then
+                                        MSG="Error: Fail to start cacao agent. ${instancename}"
+                                        # Log message on syslog
+                                        ${LOGGER} -p daemon.err -t cacao "${MSG}"
+                                        # Display message on terminal if any
+                                        echo "${MSG}" >&2
+                                        final_exit_code=1
+                                        continue
+                                    fi
+                                done
+                                exit ${final_exit_code}
+        ;;
+   stop)
+        #loop on all cacao instances
+                                instances="`${LS} -1 ${cacao_etc_instances_dir} 2>/dev/null`"
+                                if [ $? -ne 0 ]; then
+                                    instances="default"
+                                    MSG="Error : Can't retrieve the instances, stop the default."
+                                    # Log message on syslog
+                                    ${LOGGER} -p daemon.err -t cacao "${MSG}"
+                                    # Display message on terminal if any
+                                    echo "${MSG}" >&2
+                                    final_exit_code=1
+                                fi
+        
+                                for i in ${instances}
+                                do
+                                   instance="-i ${i}"
+                                   instancename="(instance ${i})"
+        
+                                    MSG="`${CACAOADM} non_embedded_stop ${instance} 2>&1`"
+                                    if [ $? -ne 0 ]; then
+                                        MSG="Error: Can't stop cacao agent. ${instancename} ${MSG}"
+                                        # Log message on syslog
+                                        ${LOGGER} -p daemon.err -t cacao "${MSG}"
+                                        # Display message on terminal if any
+                                        echo "${MSG}" >&2
+                                        final_exit_code=1
+                                    fi
+                                done
+                                exit ${final_exit_code}
+        ;;
+
+   restart)
+        $0 stop
+                                final_exit_code=$?
+                                $0 start
+                                if [ ${?} -ne 0 ]; then
+                                    final_exit_code=$?
+                                fi
+                                exit ${final_exit_code}
+        ;;
+
+   status)
+        #loop on all cacao instances
+                                instances="`${LS} -1 ${cacao_etc_instances_dir} 2>/dev/null`"
+                                if [ $? -ne 0 ]; then
+                                    instances="default"
+                                    MSG="Error : Can't retrieve the instances, show status of the default."
+                                    # Log message on syslog
+                                    ${LOGGER} -p daemon.err -t cacao "${MSG}"
+                                    # Display message on terminal if any
+                                    echo "${MSG}" >&2
+                                    final_exit_code=1
+                                fi
+        
+                                for i in ${instances}
+                                do
+                                   instance="-i ${i}"
+                                   instancename="(instance ${i})"
+        
+                                    MSG="`${CACAOADM} status ${instance} 2>&1`"
+                                    if [ $? -ne 0 ]; then
+                                        MSG="Error: Can't stop cacao agent. ${instancename} ${MSG}"
+                                        # Log message on syslog
+                                        ${LOGGER} -p daemon.err -t cacao "${MSG}"
+                                        # Display message on terminal if any
+                                        echo "${MSG}" >&2
+                                        final_exit_code=1
+                                    fi
+                                done
+                                exit ${final_exit_code}
+        ;;
+
+   *)
+        if [ -z $1 ]
+        then
+                echo "Usage: $0 {start|stop|restart|status}" >&2
+        fi
+        exit 1
+        ;;
+esac
+                                                                                
+exit 0

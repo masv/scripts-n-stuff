@@ -1,0 +1,52 @@
+#!/bin/sh
+
+# chkconfig: 2345 30 70
+# description: This script is used as a startup script.
+# processname: ldap_prod
+# 
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+dsadm=/opt/ldap/ds6/bin/dsadm
+instance_dir=/opt/ldap/ds6/instances/prod
+instances=`ls -1 $instance_dir`
+
+ulimit -n 16384
+
+case "$1" in
+    start)
+        for i in $instances; do
+            echo -n "Starting LDAP instance $i..."
+                                                echo ""
+            $dsadm start $instance_dir/$i
+        done
+        ;;
+    stop)
+        for i in $instances; do
+            echo -n "Shutting down LDAP instance $i..."
+                                                echo ""
+            $dsadm stop $instance_dir/$i
+        done    
+        ;;
+    restart)
+        for i in $instances; do
+            echo -n "Restart LDAP instance $i..."
+                                                echo ""
+            $dsadm restart $instance_dir/$i
+        done
+        ;;
+    status)
+        for i in $instances; do
+            echo -n "Status for LDAP instance $i:"
+                                                echo ""
+            $dsadm info $instance_dir/$i
+        done
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart|status}"
+        exit 1
+        ;;
+esac
+
+exit 0
